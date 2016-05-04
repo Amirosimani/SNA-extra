@@ -35,9 +35,27 @@ termDocMatrix[termDocMatrix>=1] <- 1
 # transform into a term-term adjacency matrix
 termMatrix <- termDocMatrix %*% t(termDocMatrix)
 
+#subsetting based on degree - by providing matrix and required degree
+filter.on.degree <- function(matrixY, x) {
+  #finding nodes name based on the required degree
+  a <- as.data.frame(degree(g2))
+  colnames(a) <- c("deg")
+  a2 <- subset(a, deg > x)
+  a2 <- cbind(Row.Names = rownames(a2), a2)
+  
+  newdata <- as.data.frame(matrixY)
+  newdata <- cbind(Row.Names = rownames(newdata), newdata)
+  newdata <- newdata[newdata$Row.Names %in% a2$Row.Names, ]
+  newdata <- newdata2[ , which(names(newdata) %in% a2$Row.Names)]
+  
+  cleaned_matrix <- as.matrix(newdata)
+}
+
+cleaned.termMatrix <- filter.on.degree(termMatrix, 100)
+
 library(igraph)
 # build a graph from the above matrix
-g <- graph.adjacency(termMatrix, weighted=T, mode = "undirected")
+g <- graph.adjacency(cleaned.termMatrix, weighted=T, mode = "undirected")
 # remove loops
 g <- simplify(g)
 # set labels and degrees of vertices
@@ -51,21 +69,21 @@ delete.isolates <- function(graph, mode = 'all') {
 }
 g2 <- delete.isolates(g, mode = 'in')
 
-#subsetting based on degree
-a <- as.data.frame(degree(g2))
-colnames(a) <- c("deg")
-
-newdata <- a[ which(a$deg > 100),]
-
-
-
-
-
 ### 4.Plot a Graph----
 # set seed to make the layout reproducible
 set.seed(3952)
 layout1 <- layout.fruchterman.reingold(g)
-plot(g, layout=layout1)
 
-plot(g2, layout=layout.kamada.kawai, vertex.label = ifelse(degree(g) > 50, V(g)$label, NA))
+l <- layout.fruchterman.reingold(g, repulserad=vcount(g)^3, 
+                                 area=vcount(g)^2.4)
+V(g)$size=degree(g)/5
+
+pdf("sna_words.pdf")
+plot(g, layout=layout.lgl,
+     edge.arrow.size=.3,
+     vertex.shape="none",
+     vertex.label = ifelse(degree(g) > 1, V(g)$label, NA)
+)
+dev.off()
+
 
