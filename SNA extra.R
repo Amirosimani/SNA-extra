@@ -63,7 +63,7 @@ filter.on.degree <- function(matrixY, x) {
   cleaned_matrix <- as.matrix(newdata)
 }
 
-cleaned.termMatrix <- filter.on.degree(termMatrix, 100)
+cleaned.termMatrix <- filter.on.degree(termMatrix, 200)
 g2 <- graph.adjacency(cleaned.termMatrix, weighted=T, mode = "undirected")
 
 # remove loops
@@ -82,19 +82,20 @@ g2 <- delete.isolates(g2, mode = 'in')
 ### 4.Plot a Graph----
 # set seed to make the layout reproducible
 set.seed(3952)
-layout1 <- layout.fruchterman.reingold(g2)*5
 
 V(g2)$size=degree(g2)/5
 E(g2)$color <- "white"
 
-pdf("sna_words1.pdf")
-plot(g2, layout=layout.lgl,
+pdf("sna_words4.pdf")
+plot.igraph(g2,
+     layout=layout.fruchterman.reingold(g2)*5,
      edge.arrow.size=0.3,
      vertex.shape="none",
-     vertex.label.cex = 0.5,
-     vertex.label = ifelse(degree(g2) > 1, V(g2)$label, NA)
+     vertex.label.cex = degree(g2)/100,
+     #vertex.label = ifelse(degree(g2) > 1, V(g2)$label, NA)
 )
 dev.off()
+
 
 ### 5. Community detection ----
 topo(g2)
@@ -102,13 +103,15 @@ topo(g2)
 fgn = edge.betweenness.community (g2, directed = F, edge.betweenness = TRUE, merges = TRUE,
                                   bridges = TRUE, modularity = TRUE, membership = TRUE)  ## run Girvan-Newman partitioning
 pdf("fgn.pdf")
-plot(fgn, g2)
+plot(fgn, g2,
+     vertex.frame.color = NULL)
 dev.off()
 
-fwt <- walktrap.community(g2, steps=200,modularity=TRUE) # , labels=TRUE)  ## run random walk partitioning
+fwt <- walktrap.community(g2, steps=25,modularity=TRUE) # , labels=TRUE)  ## run random walk partitioning
 
 pdf("fwt.pdf")
-plot(fwt, g2)  ## plot R-W partitioning
+plot(fwt, g2,
+     )  ## plot R-W partitioning
 dev.off()
 
 ## compare these methods to each other 
@@ -121,3 +124,18 @@ rw = data.frame(fwt$membership)
 traits <- row.names(cleaned.termMatrix)
 
 fb <- cbind(traits, girvan, rw)
+
+### attach rw membership to nodese for colors 
+gg <- g2
+V(gg)$color <- fwt$membership
+
+pdf("sna_words4.pdf")
+plot.igraph(gg,
+            layout=layout.fruchterman.reingold(g2)*5,
+            edge.arrow.size=0.3,
+            #vertex.shape="none",
+            vertex.label.cex = degree(gg)/100,
+            #vertex.label = ifelse(degree(g2) > 1, V(g2)$label, NA)
+)
+dev.off()
+
